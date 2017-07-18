@@ -34,7 +34,7 @@ Usage
 You will need an API key for RocketLeagueStats in order to use the API.  
 API keys are available at the [Developer Portal](https://developers.rocketleaguestats.com/).
   
-**Important:** Your application should take care to call RLStatsAPI#shutdownThreads() when it it done using an instance of the API (i.e. about to close) or the application may not shutdown correctly.
+**Important:** Your application should take care to call [RLStatsAPI#shutdownThreads()](http://ssplugins.com/javadocs/RLStatsAPI/com/ssplugins/rlstats/RLStatsAPI.html#shutdownThreads--) when it it done using an instance of the API (i.e. about to close) or the application may not shutdown correctly.
 
 Example getting player info.
 ```java
