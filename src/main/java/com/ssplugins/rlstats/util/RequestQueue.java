@@ -38,7 +38,6 @@ public class RequestQueue {
 	
 	private Future<JsonNode> request(String apiKey, String apiVersion, String endpoint, Query query, String body, boolean post) {
 		String url = RLStats.BASE_URL + apiVersion + endpoint + (query == null ? "" : query.toString());
-		System.out.println("Requesting: " + url);
 		return service.submit(() -> {
 			if (requestsLeft == 0) {
 				long time = System.currentTimeMillis();
