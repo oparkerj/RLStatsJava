@@ -13,7 +13,7 @@ Maven
 <dependency>
     <groupId>com.ssplugins.rlstats</groupId>
     <artifactId>RLStatsAPI</artifactId>
-    <version>1.0.0-beta</version>
+    <version>1.0.1-beta</version>
 </dependency>
 ```
 

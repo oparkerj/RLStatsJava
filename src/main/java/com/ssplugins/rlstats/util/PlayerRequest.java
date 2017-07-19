@@ -3,6 +3,9 @@ package com.ssplugins.rlstats.util;
 import com.ssplugins.rlstats.entities.Platform;
 import org.json.JSONObject;
 
+/**
+ * Represents a request to retrieve player data.
+ */
 public class PlayerRequest {
 
 	private String id;
