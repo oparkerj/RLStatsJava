@@ -50,4 +50,23 @@ public enum Platform {
 		return null;
 	}
 	
+	/**
+	 * Get a {@link Platform} by name.
+	 * @param name Name of platform to get.
+	 * @return Platform or null if not found.
+	 */
+	public static Platform fromName(String name) {
+		switch (name.toLowerCase()) {
+			case "steam":
+			case "pc":
+				return STEAM;
+			case "ps4":
+				return PS4;
+			case "xbox":
+			case "xboxone":
+				return XBOX;
+		}
+		return null;
+	}
+	
 }
