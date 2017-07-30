@@ -54,15 +54,6 @@ public class IRLStatsAPI implements RLStatsAPI {
 		return list;
 	}
 	
-	private List<Player> jsonArrayToPlayerList(JsonNode node) {
-		List<Player> list = new ArrayList<>();
-		node.getArray().forEach(o -> {
-			JSONObject object = (JSONObject) o;
-			list.add(new Player(object));
-		});
-		return list;
-	}
-	
 	//
 	
 	@Override
@@ -225,7 +216,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 			collection.forEach(playerRequest -> array.put(playerRequest.toJSONObject()));
 			Future<JsonNode> response = queue.post(key, apiVersion, "/player/batch", null, array.toString());
 			try {
-				return jsonArrayToPlayerList(response.get());
+				return jsonNodeToObjectList(response.get(), Player::new);
 			} catch (InterruptedException | ExecutionException e) {
 				e.printStackTrace();
 			}
@@ -284,7 +275,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 		return tasks.submit(() -> {
 			Future<JsonNode> response = queue.get(key, apiVersion, "/leaderboard/ranked", Query.create("playlist_id", String.valueOf(playlistId)));
 			try {
-				return jsonArrayToPlayerList(response.get());
+				return jsonNodeToObjectList(response.get(), Player::new);
 			} catch (InterruptedException | ExecutionException e) {
 				e.printStackTrace();
 			}
@@ -304,7 +295,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 		return tasks.submit(() -> {
 			Future<JsonNode> response = queue.get(key, apiVersion, "/leaderboard/stat", Query.create("type", stat.getQueryName()));
 			try {
-				return jsonArrayToPlayerList(response.get());
+				return jsonNodeToObjectList(response.get(), Player::new);
 			} catch (InterruptedException | ExecutionException e) {
 				e.printStackTrace();
 			}
