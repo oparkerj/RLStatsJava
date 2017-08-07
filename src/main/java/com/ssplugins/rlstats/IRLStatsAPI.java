@@ -16,6 +16,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class IRLStatsAPI implements RLStatsAPI {
 	
@@ -35,14 +37,24 @@ public class IRLStatsAPI implements RLStatsAPI {
 		if (key == null || key.isEmpty()) throw new IllegalStateException("No API key was provided.");
 	}
 	
-	private List<Player> jsonArrayToList(JsonNode node) {
-		List<Player> list = new ArrayList<>();
-		node.getArray().forEach(o -> {
-			JSONObject object = (JSONObject) o;
-			list.add(new Player(object));
-		});
+	// Utility Methods
+	
+	private <T> T getMethodBlocking(Future<T> future, Supplier<T> fallback) {
+		try {
+			return future.get();
+		} catch (InterruptedException | ExecutionException e) {
+			e.printStackTrace();
+		}
+		return fallback.get();
+	}
+	
+	private <T> List<T> jsonNodeToObjectList(JsonNode node, Function<JSONObject, T> converter) {
+		List<T> list = new ArrayList<>();
+		node.getArray().forEach(o -> list.add(converter.apply((JSONObject) o)));
 		return list;
 	}
+	
+	//
 	
 	@Override
 	public void shutdownThreads() {
@@ -77,13 +89,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 		return tasks.submit(() -> {
 			Future<JsonNode> response = queue.get(key, apiVersion, "/data/platforms", null);
 			try {
-				JsonNode node = response.get();
-				List<PlatformInfo> list = new ArrayList<>();
-				node.getArray().forEach(o -> {
-					JSONObject object = (JSONObject) o;
-					list.add(new PlatformInfo(object));
-				});
-				return list;
+				return jsonNodeToObjectList(response.get(), PlatformInfo::new);
 			} catch (InterruptedException | ExecutionException e) {
 				e.printStackTrace();
 			}
@@ -93,12 +99,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 	
 	@Override
 	public List<PlatformInfo> getPlatformsBlocking() {
-		try {
-			return getPlatforms().get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return new ArrayList<>();
+		return getMethodBlocking(getPlatforms(), ArrayList::new);
 	}
 	
 	@Override
@@ -121,13 +122,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 	
 	private List<Tier> getTiers(Future<JsonNode> response) {
 		try {
-			JsonNode node = response.get();
-			List<Tier> list = new ArrayList<>();
-			node.getArray().forEach(o -> {
-				JSONObject object = (JSONObject) o;
-				list.add(new Tier(object));
-			});
-			return list;
+			return jsonNodeToObjectList(response.get(), Tier::new);
 		} catch (InterruptedException | ExecutionException e) {
 			e.printStackTrace();
 		}
@@ -136,22 +131,12 @@ public class IRLStatsAPI implements RLStatsAPI {
 	
 	@Override
 	public List<Tier> getTiersBlocking() {
-		try {
-			return getTiers().get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return new ArrayList<>();
+		return getMethodBlocking(getTiers(), ArrayList::new);
 	}
 	
 	@Override
 	public List<Tier> getTiersBlocking(int season) {
-		try {
-			return getTiers(season).get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return new ArrayList<>();
+		return getMethodBlocking(getTiers(season), ArrayList::new);
 	}
 	
 	@Override
@@ -160,13 +145,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 		return tasks.submit(() -> {
 			Future<JsonNode> response = queue.get(key, apiVersion, "/data/seasons", null);
 			try {
-				JsonNode node = response.get();
-				List<Season> list = new ArrayList<>();
-				node.getArray().forEach(o -> {
-					JSONObject object = (JSONObject) o;
-					list.add(new Season(object));
-				});
-				return list;
+				return jsonNodeToObjectList(response.get(), Season::new);
 			} catch (InterruptedException | ExecutionException e) {
 				e.printStackTrace();
 			}
@@ -176,12 +155,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 	
 	@Override
 	public List<Season> getSeasonsBlocking() {
-		try {
-			return getSeasons().get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return new ArrayList<>();
+		return getMethodBlocking(getSeasons(), ArrayList::new);
 	}
 	
 	@Override
@@ -190,13 +164,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 		return tasks.submit(() -> {
 			Future<JsonNode> response = queue.get(key, apiVersion, "/data/playlists", null);
 			try {
-				JsonNode node = response.get();
-				List<Playlist> list = new ArrayList<>();
-				node.getArray().forEach(o -> {
-					JSONObject object = (JSONObject) o;
-					list.add(new Playlist(object));
-				});
-				return list;
+				return jsonNodeToObjectList(response.get(), Playlist::new);
 			} catch (InterruptedException | ExecutionException e) {
 				e.printStackTrace();
 			}
@@ -206,12 +174,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 	
 	@Override
 	public List<Playlist> getPlaylistInfoBlocking() {
-		try {
-			return getPlaylistInfo().get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return new ArrayList<>();
+		return getMethodBlocking(getPlaylistInfo(), ArrayList::new);
 	}
 	
 	@Override
@@ -236,12 +199,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 	
 	@Override
 	public Player getPlayerBlocking(String id, int platform) {
-		try {
-			return getPlayer(id, platform).get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return null;
+		return getMethodBlocking(getPlayer(id, platform), () -> null);
 	}
 	
 	@Override
@@ -256,12 +214,9 @@ public class IRLStatsAPI implements RLStatsAPI {
 		return tasks.submit(() -> {
 			JSONArray array = new JSONArray();
 			collection.forEach(playerRequest -> array.put(playerRequest.toJSONObject()));
-			
 			Future<JsonNode> response = queue.post(key, apiVersion, "/player/batch", null, array.toString());
 			try {
-				JsonNode node = response.get();
-				System.out.println(node.getArray().toString());
-				return jsonArrayToList(node);
+				return jsonNodeToObjectList(response.get(), Player::new);
 			} catch (InterruptedException | ExecutionException e) {
 				e.printStackTrace();
 			}
@@ -276,22 +231,12 @@ public class IRLStatsAPI implements RLStatsAPI {
 	
 	@Override
 	public List<Player> getPlayersBlocking(Collection<PlayerRequest> collection) {
-		try {
-			return getPlayers(collection).get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return new ArrayList<>();
+		return getMethodBlocking(getPlayers(collection), ArrayList::new);
 	}
 	
 	@Override
 	public List<Player> getPlayersBlocking(PlayerRequest[] requests) {
-		try {
-			return getPlayers(requests).get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return new ArrayList<>();
+		return getMethodBlocking(getPlayers(requests), ArrayList::new);
 	}
 	
 	@Override
@@ -316,22 +261,12 @@ public class IRLStatsAPI implements RLStatsAPI {
 	
 	@Override
 	public SearchResultPage searchPlayersBlocking(String displayName, int page) {
-		try {
-			return searchPlayers(displayName, page).get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return null;
+		return getMethodBlocking(searchPlayers(displayName, page), () -> null);
 	}
 	
 	@Override
 	public SearchResultPage searchPlayersBlocking(String displayName) {
-		try {
-			return searchPlayers(displayName).get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return null;
+		return getMethodBlocking(searchPlayers(displayName), () -> null);
 	}
 	
 	@Override
@@ -340,8 +275,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 		return tasks.submit(() -> {
 			Future<JsonNode> response = queue.get(key, apiVersion, "/leaderboard/ranked", Query.create("playlist_id", String.valueOf(playlistId)));
 			try {
-				JsonNode node = response.get();
-				return jsonArrayToList(node);
+				return jsonNodeToObjectList(response.get(), Player::new);
 			} catch (InterruptedException | ExecutionException e) {
 				e.printStackTrace();
 			}
@@ -351,12 +285,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 	
 	@Override
 	public List<Player> getRankedLeaderboardBlocking(int playlistId) {
-		try {
-			return getRankedLeaderboard(playlistId).get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return new ArrayList<>();
+		return getMethodBlocking(getRankedLeaderboard(playlistId), ArrayList::new);
 	}
 	
 	@Override
@@ -366,8 +295,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 		return tasks.submit(() -> {
 			Future<JsonNode> response = queue.get(key, apiVersion, "/leaderboard/stat", Query.create("type", stat.getQueryName()));
 			try {
-				JsonNode node = response.get();
-				return jsonArrayToList(node);
+				return jsonNodeToObjectList(response.get(), Player::new);
 			} catch (InterruptedException | ExecutionException e) {
 				e.printStackTrace();
 			}
@@ -377,11 +305,6 @@ public class IRLStatsAPI implements RLStatsAPI {
 	
 	@Override
 	public List<Player> getStatLeaderboardBlocking(Stat stat) {
-		try {
-			return getStatLeaderboard(stat).get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return new ArrayList<>();
+		return getMethodBlocking(getStatLeaderboard(stat), ArrayList::new);
 	}
 }
