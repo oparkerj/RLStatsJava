@@ -13,7 +13,7 @@ Maven
 <dependency>
     <groupId>com.ssplugins.rlstats</groupId>
     <artifactId>RLStatsAPI</artifactId>
-    <version>1.0.1-beta</version>
+    <version>1.1.0-beta</version>
 </dependency>
 ```
 
@@ -34,8 +34,6 @@ Usage
 You will need an API key for RocketLeagueStats in order to use the API.  
 API keys are available at the [Developer Portal](https://developers.rocketleaguestats.com/).
   
-**Important:** Your application should take care to call [RLStatsAPI#shutdownThreads()](http://ssplugins.com/docs/java/RLStatsAPI/com/ssplugins/rlstats/RLStatsAPI.html#shutdownThreads--) when it it done using an instance of the API (i.e. about to close) or the application may not shutdown correctly.
-
 Example getting player info.
 ```java
 import com.ssplugins.rlstats.entities.Platform;
@@ -60,10 +58,6 @@ public class GetStats {
 		PlaylistInfo info = player.getSeasonInfo(5).getPlaylistInfo(Playlist.RANKED_DOUBLES);
 		int tier = info.getTier();
 		int division = info.getDivision();
-		
-		// Should be called when you are finished using the API with this instance.
-		// If not called your application may not shutdown correctly.
-		api.shutdownThreads();
 	}
 	
 	public void foo(RLStatsAPI api) {

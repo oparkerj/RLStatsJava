@@ -6,26 +6,25 @@ import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import com.mashape.unirest.request.HttpRequestWithBody;
+import com.ssplugins.rlstats.IRLStatsAPI;
 import com.ssplugins.rlstats.RLStats;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 
 public class RequestQueue {
 	
-	private final ExecutorService service = Executors.newSingleThreadExecutor();
+	private final ForkJoinPool service = ForkJoinPool.commonPool();
+	
+	private IRLStatsAPI api;
 	
 	private int requestsLeft;
 	private long msRemaining, lastRequest;
 	
-	public RequestQueue() {
+	public RequestQueue(IRLStatsAPI api) {
+		this.api = api;
 		this.requestsLeft = 2;
 		this.msRemaining = -1;
-	}
-	
-	public void shutdown() {
-		service.shutdownNow();
 	}
 	
 	public Future<JsonNode> post(String apiKey, String apiVersion, String endpoint, Query query, String body) {
@@ -46,7 +45,7 @@ public class RequestQueue {
 					try {
 						Thread.sleep(msRemaining - delta);
 					} catch (InterruptedException e) {
-						e.printStackTrace();
+						api.exception(e);
 					}
 				}
 			}
@@ -67,8 +66,8 @@ public class RequestQueue {
 				msRemaining = Long.parseLong(headers.getFirst("X-Rate-Limit-Reset-Remaining"));
 				lastRequest = System.currentTimeMillis();
 				return response.getBody();
-			} catch (UnirestException e) {
-				e.printStackTrace();
+			} catch (UnirestException | IllegalStateException e) {
+				api.exception(e);
 			}
 			return null;
 		});
@@ -94,7 +93,7 @@ public class RequestQueue {
 			case 500:
 				throw new IllegalStateException("Internal Server Error. (E:500) Message: " + response.getBody().getObject().getString("message"));
 			case 503:
-				throw new IllegalStateException("Service Unavailable. Temporarily offline for maintentance.");
+				throw new IllegalStateException("Service Unavailable. Temporarily offline for maintentance. (E:503)");
 			default:
 				break;
 		}
