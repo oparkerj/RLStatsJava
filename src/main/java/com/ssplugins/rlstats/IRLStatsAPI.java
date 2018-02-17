@@ -24,13 +24,12 @@ public class IRLStatsAPI implements RLStatsAPI {
 	
 	private final ExecutorService tasks = ForkJoinPool.commonPool();
 	
-	private RequestQueue queue = new RequestQueue(this);
-	
 	private String key = null;
 	private String apiVersion = "v1";
 	private int requestsPerSecond = 2;
-	
 	private Consumer<Exception> exceptionHandler;
+	
+	private RequestQueue queue = new RequestQueue(this);
 	
 	IRLStatsAPI() {}
 	
