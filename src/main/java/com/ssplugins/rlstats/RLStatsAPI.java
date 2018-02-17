@@ -1,7 +1,6 @@
 package com.ssplugins.rlstats;
 
 import com.ssplugins.rlstats.entities.*;
-import com.ssplugins.rlstats.entities.Stat;
 import com.ssplugins.rlstats.util.PlayerRequest;
 
 import java.util.Collection;
