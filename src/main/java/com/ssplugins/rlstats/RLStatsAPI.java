@@ -1,20 +1,29 @@
 package com.ssplugins.rlstats;
 
 import com.ssplugins.rlstats.entities.*;
-import com.ssplugins.rlstats.entities.Stat;
 import com.ssplugins.rlstats.util.PlayerRequest;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 public interface RLStatsAPI {
 	
 	/**
-	 * Shuts down the executors to properly close the threads.
-	 * Once called, a new instance must be created to access the API.
+	 * Sets the {@link Consumer} that will be called when an exception is thrown.
+	 * Exceptions due to invalid parameters are thrown as normal and not sent here.
+	 * @param exceptionHandler {@link Consumer} to handle exceptions.
 	 */
-	void shutdownThreads();
+	void setExceptionHandler(Consumer<Exception> exceptionHandler);
+	
+	/**
+	 * Set the number of requests this API should assume your rlstats api key has. (Default 2)
+	 * If this is set higher than the amount your account has, an exception may be thrown
+	 * for too many requests being sent.
+	 * @param i Requests per second.
+	 */
+	void setRequestsPerSecond(int i);
 	
 	/**
 	 * Sets the auth key used for API requests.

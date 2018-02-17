@@ -6,26 +6,43 @@ import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import com.mashape.unirest.request.HttpRequestWithBody;
+import com.ssplugins.rlstats.IRLStatsAPI;
 import com.ssplugins.rlstats.RLStats;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.IntStream;
 
 public class RequestQueue {
 	
-	private final ExecutorService service = Executors.newSingleThreadExecutor();
+	private final ExecutorService service = ForkJoinPool.commonPool();
 	
-	private int requestsLeft;
-	private long msRemaining, lastRequest;
+	private IRLStatsAPI api;
 	
-	public RequestQueue() {
-		this.requestsLeft = 2;
-		this.msRemaining = -1;
+	private BlockingQueue<Integer> queue = new LinkedBlockingQueue<>();
+	private AtomicBoolean waiting = new AtomicBoolean();
+	
+	public RequestQueue(IRLStatsAPI api) {
+		this.api = api;
+		addRequests(api.getRequestsPerSecond());
 	}
 	
-	public void shutdown() {
-		service.shutdownNow();
+	private void addRequests(int i) {
+		IntStream.range(0, i).forEach(queue::add);
+	}
+	
+	private void waitForRequests(long msRemaining) {
+		if (waiting.get()) return;
+		waiting.set(true);
+		service.submit(() -> {
+			try {
+				Thread.sleep(msRemaining);
+			} catch (InterruptedException e) {
+				api.exception(e);
+			}
+			waiting.set(false);
+			addRequests(api.getRequestsPerSecond());
+		});
 	}
 	
 	public Future<JsonNode> post(String apiKey, String apiVersion, String endpoint, Query query, String body) {
@@ -39,17 +56,7 @@ public class RequestQueue {
 	private Future<JsonNode> request(String apiKey, String apiVersion, String endpoint, Query query, String body, boolean post) {
 		String url = RLStats.BASE_URL + apiVersion + endpoint + (query == null ? "" : query.toString());
 		return service.submit(() -> {
-			if (requestsLeft == 0) {
-				long time = System.currentTimeMillis();
-				long delta = time - lastRequest;
-				if (delta < msRemaining) {
-					try {
-						Thread.sleep(msRemaining - delta);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-			}
+			queue.take(); // Wait until there are requests available.
 			try {
 				Unirest.setTimeouts(RLStats.CONNECTION_TIMEOUT, RLStats.SOCKET_TIMEOUT);
 				HttpResponse<JsonNode> response;
@@ -63,12 +70,10 @@ public class RequestQueue {
 				}
 				checkStatus(response);
 				Headers headers = response.getHeaders();
-				requestsLeft = Integer.parseInt(headers.getFirst("X-Rate-Limit-Remaining"));
-				msRemaining = Long.parseLong(headers.getFirst("X-Rate-Limit-Reset-Remaining"));
-				lastRequest = System.currentTimeMillis();
+				waitForRequests(Long.parseLong(headers.getFirst("X-Rate-Limit-Reset-Remaining")));
 				return response.getBody();
-			} catch (UnirestException e) {
-				e.printStackTrace();
+			} catch (UnirestException | IllegalStateException e) {
+				api.exception(e);
 			}
 			return null;
 		});
@@ -90,11 +95,11 @@ public class RequestQueue {
 			case 406:
 				throw new IllegalStateException("Not Acceptable. Requested format that isn't json. (E:406)");
 			case 429:
-				throw new IllegalStateException("Too Many Requests. Retry after " + response.getHeaders().getFirst("retry-after-ms") + "ms (E:429)");
+				throw new IllegalStateException("Too Many Requests. Retry after " + response.getHeaders().getFirst("Retry-After-Ms") + "ms (E:429)");
 			case 500:
 				throw new IllegalStateException("Internal Server Error. (E:500) Message: " + response.getBody().getObject().getString("message"));
 			case 503:
-				throw new IllegalStateException("Service Unavailable. Temporarily offline for maintentance.");
+				throw new IllegalStateException("Service Unavailable. Temporarily offline for maintentance. (E:503)");
 			default:
 				break;
 		}
