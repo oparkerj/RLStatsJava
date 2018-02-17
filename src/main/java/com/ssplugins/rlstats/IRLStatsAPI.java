@@ -12,19 +12,23 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class IRLStatsAPI implements RLStatsAPI {
 	
-	private final ForkJoinPool tasks = ForkJoinPool.commonPool();
+	private final ExecutorService tasks = ForkJoinPool.commonPool();
 	
 	private RequestQueue queue = new RequestQueue(this);
 	
 	private String key = null;
 	private String apiVersion = "v1";
+	private int requestsPerSecond = 2;
 	
 	private Consumer<Exception> exceptionHandler;
 	
@@ -47,6 +51,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 	
 	private <T> List<T> jsonNodeToObjectList(JsonNode node, Function<JSONObject, T> converter) {
 		List<T> list = new ArrayList<>();
+		if (node == null || !node.isArray()) throw new IllegalArgumentException("No data was returned.");
 		node.getArray().forEach(o -> list.add(converter.apply((JSONObject) o)));
 		return list;
 	}
@@ -55,11 +60,20 @@ public class IRLStatsAPI implements RLStatsAPI {
 		if (exceptionHandler != null) exceptionHandler.accept(e);
 	}
 	
+	public int getRequestsPerSecond() {
+		return requestsPerSecond;
+	}
+	
 	//
 	
 	@Override
 	public void setExceptionHandler(Consumer<Exception> exceptionHandler) {
 		this.exceptionHandler = exceptionHandler;
+	}
+	
+	@Override
+	public void setRequestsPerSecond(int i) {
+		this.requestsPerSecond = i;
 	}
 	
 	@Override
@@ -89,7 +103,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 			Future<JsonNode> response = queue.get(key, apiVersion, "/data/platforms", null);
 			try {
 				return jsonNodeToObjectList(response.get(), PlatformInfo::new);
-			} catch (InterruptedException | ExecutionException e) {
+			} catch (InterruptedException | ExecutionException | IllegalArgumentException e) {
 				exception(e);
 			}
 			return new ArrayList<>();
@@ -122,7 +136,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 	private List<Tier> getTiers(Future<JsonNode> response) {
 		try {
 			return jsonNodeToObjectList(response.get(), Tier::new);
-		} catch (InterruptedException | ExecutionException e) {
+		} catch (InterruptedException | ExecutionException | IllegalArgumentException e) {
 			exception(e);
 		}
 		return new ArrayList<>();
@@ -145,7 +159,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 			Future<JsonNode> response = queue.get(key, apiVersion, "/data/seasons", null);
 			try {
 				return jsonNodeToObjectList(response.get(), Season::new);
-			} catch (InterruptedException | ExecutionException e) {
+			} catch (InterruptedException | ExecutionException | IllegalArgumentException e) {
 				exception(e);
 			}
 			return new ArrayList<>();
@@ -164,7 +178,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 			Future<JsonNode> response = queue.get(key, apiVersion, "/data/playlists", null);
 			try {
 				return jsonNodeToObjectList(response.get(), Playlist::new);
-			} catch (InterruptedException | ExecutionException e) {
+			} catch (InterruptedException | ExecutionException | IllegalArgumentException e) {
 				exception(e);
 			}
 			return new ArrayList<>();
@@ -216,7 +230,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 			Future<JsonNode> response = queue.post(key, apiVersion, "/player/batch", null, array.toString());
 			try {
 				return jsonNodeToObjectList(response.get(), Player::new);
-			} catch (InterruptedException | ExecutionException e) {
+			} catch (InterruptedException | ExecutionException | IllegalArgumentException e) {
 				exception(e);
 			}
 			return new ArrayList<>();
@@ -275,7 +289,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 			Future<JsonNode> response = queue.get(key, apiVersion, "/leaderboard/ranked", Query.create("playlist_id", String.valueOf(playlistId)));
 			try {
 				return jsonNodeToObjectList(response.get(), Player::new);
-			} catch (InterruptedException | ExecutionException e) {
+			} catch (InterruptedException | ExecutionException | IllegalArgumentException e) {
 				exception(e);
 			}
 			return new ArrayList<>();
@@ -295,7 +309,7 @@ public class IRLStatsAPI implements RLStatsAPI {
 			Future<JsonNode> response = queue.get(key, apiVersion, "/leaderboard/stat", Query.create("type", stat.getQueryName()));
 			try {
 				return jsonNodeToObjectList(response.get(), Player::new);
-			} catch (InterruptedException | ExecutionException e) {
+			} catch (InterruptedException | ExecutionException | IllegalArgumentException e) {
 				exception(e);
 			}
 			return new ArrayList<>();

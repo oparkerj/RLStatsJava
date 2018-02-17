@@ -19,6 +19,14 @@ public interface RLStatsAPI {
 	void setExceptionHandler(Consumer<Exception> exceptionHandler);
 	
 	/**
+	 * Set the number of requests this API should assume your rlstats api key has. (Default 2)
+	 * If this is set higher than the amount your account has, an exception may be thrown
+	 * for too many requests being sent.
+	 * @param i Requests per second.
+	 */
+	void setRequestsPerSecond(int i);
+	
+	/**
 	 * Sets the auth key used for API requests.
 	 * @param key The key to use for API requests.
 	 */
