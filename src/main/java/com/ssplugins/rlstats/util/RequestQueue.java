@@ -41,7 +41,7 @@ public class RequestQueue {
 				api.exception(e);
 			}
 			waiting.set(false);
-			addRequests(api.getRequestsPerSecond());
+			addRequests(api.getRequestsPerSecond() - queue.size());
 		});
 	}
 	
