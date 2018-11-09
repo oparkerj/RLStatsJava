@@ -1,5 +1,6 @@
 RLStatsJava
 =
+**Note: RocketLeagueStats has shut down. The API can no longer be used.**  
 Java API Client for https://rocketleaguestats.com/
 
 Maven
