@@ -3,37 +3,8 @@ RLStatsJava
 **Note: RocketLeagueStats has shut down. The API can no longer be used.**  
 Java API Client for https://rocketleaguestats.com/
 
-Maven
--
-```xml
-<repository>
-    <id>ssplugins</id>
-    <url>http://ssplugins.com/repo/</url>
-</repository>
-
-<dependency>
-    <groupId>com.ssplugins.rlstats</groupId>
-    <artifactId>RLStatsAPI</artifactId>
-    <version>1.1.0</version>
-</dependency>
-```
-
-Download
--
-If you don't use Maven, you can check the [Releases Page](https://github.com/567legodude/RLStatsJava/releases).
-
-Support
--
-For help with the RocketLeagueStats API head over to the [Discord Server](https://discord.gg/Cq2naUu). For help with this library contact me in the Discord server or DM StarShadow#3546
-
-Javadoc
--
-Javadocs are here: [Javadoc](http://ssplugins.com/docs/java/RLStatsAPI/)
-
 Usage
 -
-You will need an API key for RocketLeagueStats in order to use the API.  
-API keys are available at the [Developer Portal](https://developers.rocketleaguestats.com/).
   
 Example getting player info.
 ```java
